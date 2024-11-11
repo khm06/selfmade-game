@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<style>
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #f0f0f0;
+    }
+
+    canvas {
+        border: 1px solid #000;
+    }
+
+    .reset {
+        width: 100px;
+        height: 100px;
+        position: absolute;
+        bottom: 0px;
+        color: red;
+    }
+
+    .start {
+        width: 100px;
+        height: 100px;
+        position: absolute;
+        top: 0px;
+        color: blue;
+    }
+
+    .disNone {
+        display: none;
+    }
+</style>
+
+<body>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <input type="button" class="reset disNone" value="reset">
+    <input type="button" class="start" value="start">
+</body>
+<script>
+    let canvas = document.getElementById("gameCanvas");
+    let ctx = canvas.getContext("2d");
+
+    let box = 20;
+    let canvasSize = 20;
+    let snake;
+    let food;
+    let score;
+    let direction;
+    let lastDirection;
+    let changingDirection;
+    let game;
+    let speed = 200
+    function initGame() {
+        snake = [{ x: 9 * box, y: 10 * box }];
+        food = {
+            x: Math.floor(Math.random() * canvasSize) * box,
+            y: Math.floor(Math.random() * canvasSize) * box,
+        };
+        score = 0;
+        direction = "RIGHT";
+        lastDirection = "RIGHT";
+        changingDirection = false;
+
+        if (game) clearInterval(game);
+        game = setInterval(draw, speed);
+    }
+
+    function changeDirection(event) {
+        let key = event.keyCode;
+        let goingUp = direction === "UP";
+        let goingDown = direction === "DOWN";
+        let goingRight = direction === "RIGHT";
+        let goingLeft = direction === "LEFT";
+
+        if (changingDirection) return;
+        changingDirection = true;
+
+        if (key === 37 && lastDirection !== "RIGHT") {
+            direction = "LEFT";
+        } else if (key === 38 && lastDirection !== "DOWN") {
+            direction = "UP";
+        } else if (key === 39 && lastDirection !== "LEFT") {
+            direction = "RIGHT";
+        } else if (key === 40 && lastDirection !== "UP") {
+            direction = "DOWN";
+        }
+    }
+
+    function draw() {
+        changingDirection = false;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        for (let i = 0; i < snake.length; i++) {
+            ctx.fillStyle = (i == 0) ? "green" : "white";
+            ctx.fillRect(snake[i].x, snake[i].y, box, box);
+
+            ctx.strokeStyle = "red";
+            ctx.strokeRect(snake[i].x, snake[i].y, box, box);
+        }
+
+        ctx.fillStyle = "red";
+        ctx.fillRect(food.x, food.y, box, box);
+
+        let snakeX = snake[0].x;
+        let snakeY = snake[0].y;
+
+        if (direction == "LEFT") snakeX -= box;
+        if (direction == "UP") snakeY -= box;
+        if (direction == "RIGHT") snakeX += box;
+        if (direction == "DOWN") snakeY += box;
+        lastDirection = direction;
+
+        if (snakeX == food.x && snakeY == food.y) {
+            score++;
+            if (speed > 50 && speed * 0.9 > 70) {
+                speed = speed * 0.9;
+            } else if (speed <= 50 && speed * 0.9 <= 70) {
+                speed = 70;
+            }
+            if (game) clearInterval(game);
+            game = setInterval(draw, speed);
+            food = {
+                x: Math.floor(Math.random() * canvasSize) * box,
+                y: Math.floor(Math.random() * canvasSize) * box,
+            };
+        } else {
+            snake.pop();
+        }
+
+        let newHead = {
+            x: snakeX,
+            y: snakeY,
+        };
+
+        if (
+            snakeX < 0 ||
+            snakeY < 0 ||
+            snakeX >= canvas.width ||
+            snakeY >= canvas.height ||
+            collision(newHead, snake)
+        ) {
+            resetGame();
+        } else {
+            snake.unshift(newHead);
+        }
+    }
+
+    function collision(head, array) {
+        for (let i = 0; i < array.length; i++) {
+            if (head.x == array[i].x && head.y == array[i].y) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function resetGame() {
+        setTimeout(() => {
+            alert(`Game Over! Your score: ${score}`);
+            clearInterval(game)
+            speed = 200;
+            document.querySelector(".reset").classList.remove('disNone')
+        }, 50);
+    }
+    document.querySelector(".reset").addEventListener('click', (e) => { initGame(); e.target.classList.add('disNone') })
+    document.addEventListener("keydown", changeDirection);
+    document.querySelector(".start").addEventListener('click', (e) => { initGame(); e.target.classList.add('disNone'); })
+
+</script>
+
+</html>

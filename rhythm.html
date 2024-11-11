@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>rhythm</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #222;
+        }
+
+        #game-container {
+            width: 300px;
+            height: 600px;
+            border: 2px solid #fff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .note {
+            width: 50px;
+            height: 10px;
+            background-color: #f00;
+            position: absolute;
+            top: -50px;
+        }
+
+        .position2 {
+            left: 60px;
+        }
+
+        .position3 {
+            left: 120px;
+        }
+
+        .position4 {
+            left: 180px;
+        }
+
+        .note.wrong {
+            background-color: blue;
+        }
+
+        .note.correct {
+            background-color: green;
+        }
+
+        .test {
+            width: 300px;
+            height: 50px;
+            background-color: yellow;
+            position: absolute;
+            top: 500px;
+        }
+
+        .rule {
+            color: white;
+            font-size: 50px;
+            position: absolute;
+            top: 0px;
+        }
+
+        button {
+            position: absolute;
+            width: 200px;
+            height: 50px;
+            font-size: 36px;
+            display: none;
+            cursor: pointer;
+            z-index: 9999;
+        }
+
+        .speed {
+            position: absolute;
+            right: 500px;
+            height: 50px;
+        }
+
+        .keyBox {
+            position: absolute;
+            left: 200px;
+            width: 200px;
+            height: 500px;
+            display: flex;
+        }
+
+        .keyBox>input {
+            width: 50px;
+            height: 50px;
+            text-align: center;
+            font-size: 30px;
+        }
+
+        .keyBox>span {
+            position: absolute;
+            color: white;
+            font-size: 36px;
+            top: -70px;
+            width: 400px;
+        }
+
+        .difficult {
+            position: absolute;
+            width: 100px;
+            height: 50px;
+            top: 500px;
+            left: 200px;
+        }
+
+        .difText {
+            position: absolute;
+            left: 200px;
+            top: 430px;
+            color: white;
+            font-size: 36px;
+        }
+
+        .scoreBox {
+            position: absolute;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
+            gap: 0px 0px;
+            grid-template-areas:
+                "score score score score"
+                "perfect great good fail"
+                "combo combo combo combo";
+            top: 220px;
+            left: 1390px;
+            width: 320px;
+            height: 100px;
+        }
+
+        .scoreBox>* {
+            width: 100%;
+            border: 1px solid;
+            background: white;
+            align-items: center;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        .score {
+            grid-area: score;
+        }
+
+        .perfect {
+            grid-area: perfect;
+        }
+
+        .great {
+            grid-area: great;
+        }
+
+        .good {
+            grid-area: good;
+        }
+
+        .fail {
+            grid-area: fail;
+        }
+
+        .combo {
+            grid-area: combo;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="rule">왼쪽부터 ASDF</div>
+    <div class="keyBox">
+        <span>키 변경(미입력시 기본키)</span>
+        <input maxlength="1" placeholder="a" oninput="this.value = this.value.toLowerCase()">
+        <input maxlength="1" placeholder="s" oninput="this.value = this.value.toLowerCase()">
+        <input maxlength="1" placeholder="d" oninput="this.value = this.value.toLowerCase()">
+        <input maxlength="1" placeholder="f" oninput="this.value = this.value.toLowerCase()">
+    </div>
+    <span class="difText">난이도(1~9) (미입력시 1)</span>
+    <input class="difficult" type="number" maxlength="1">
+    <button class="startBtn">start</button>
+    <div id="game-container">
+        <div class="test"></div>
+    </div>
+    <div class="scoreBox">
+        <span class="score">0</span>
+        <span class="perfect">0</span>
+        <span class="great">0</span>
+        <span class="good">0</span>
+        <span class="fail">0</span>
+        <span class="combo">0 combo</span>
+    </div>
+    <input class="speed" type="number" maxlength="1" placeholder="노트 배속 2~9 기본2">
+    <audio class="younha" src="./media/Heroes Tonight.mp3"></audio>
+    <script>
+        let container = document.querySelector('#game-container');
+        let speed;
+        let combo = 0;
+        document.querySelectorAll('input').forEach((e) => {
+            e.addEventListener('keyup', function () {
+                if (e.value.length > 1) {
+                    e.value = e.value.slice(0, 1)
+                }
+            })
+        })
+        function createNote() {
+            // setTimeout(() => {
+            let note = document.createElement('div');
+            note.classList.add('note', `position${Math.floor(Math.random() * 4) + 1}`);
+            container.appendChild(note);
+
+            let pos = 0;
+            let interval = setInterval(() => {
+                pos += speed;
+                note.style.top = `${pos}px`;
+                if (pos > 550) {
+                    note.classList.add('wrong')
+                    if (!note.classList.contains('correct') && !note.classList.contains('end')) {
+                        combo = 0;
+                        note.classList.add('end')
+                        document.querySelector('.combo').innerHTML = `0 combo`
+                        document.querySelector(`.fail`).innerHTML = Number(document.querySelector(`.fail`).innerHTML) + 1
+                    }
+                }
+                if (pos > container.clientHeight) {
+                    clearInterval(interval);
+                    container.removeChild(note);
+                }
+            }, 16);
+            // }, 500 + Math.random() * 1000);
+        }
+        let play;
+        document.querySelector('.younha').addEventListener('canplaythrough', function (e) {
+            document.querySelector('button').style.display = 'block'
+        })
+        document.querySelector('.startBtn').addEventListener('click', function (e) {
+            e.currentTarget.style.display = 'none'
+            speed = document.querySelector('.speed').value === '' || document.querySelector('.speed').value < 2 ? 2 : Number(document.querySelector('.speed').value);
+            console.log(speed)
+            document.querySelectorAll('input').forEach((e) => e.readOnly = true)
+            document.querySelector('.younha').play()
+            let difficult = document.querySelector('.difficult').value * 100 - Math.random() * 500;
+            play = setInterval(createNote, 1000 - difficult);
+        })
+        document.querySelector('.younha').onended = () => {
+            clearInterval(play);
+            setTimeout(() => {
+                document.querySelector('button').style.display = 'block'
+                document.querySelectorAll('input').forEach((e) => e.readOnly = false);
+                document.querySelectorAll('.scoreBox>span').forEach((e) => { e.innerHTML = 0 })
+                document.querySelector('.combo').innerHTML = '0 combo'
+            }, 2000);
+        }
+        document.addEventListener('keydown', (event) => {
+            let key;
+            let keyBox = document.querySelectorAll('.keyBox>input')
+            let a = keyBox[0].value == '' ? 'a' : keyBox[0].value
+            let b = keyBox[1].value == '' ? 's' : keyBox[1].value
+            let c = keyBox[2].value == '' ? 'd' : keyBox[2].value
+            let d = keyBox[3].value == '' ? 'f' : keyBox[3].value
+            console.log(event.key)
+            switch (event.key) {
+                case a:
+                    key = 'position1'
+                    break;
+                case b:
+                    key = 'position2'
+                    break;
+                case c:
+                    key = 'position3'
+                    break;
+                case d:
+                    key = 'position4'
+                    break;
+                default:
+                    key = 'break'
+                    break;
+            }
+            let notes = document.querySelectorAll('.note');
+            let selNotePre = Array.from(notes).filter(el => !el.classList.contains('correct'))
+            let score;
+            selNote = Array.from(selNotePre).filter(el => !el.classList.contains('wrong'))[0]
+            let call
+            if (parseInt(selNote.style.top, 10) < 450) {
+                console.log(selNote)
+                return;
+            }
+            if (key == 'break') {
+                return;
+            } else if (selNote.classList[1] == key && parseInt(selNote.style.top, 10) > 490 && parseInt(selNote.style.top, 10) < 560) {
+                selNote.classList.add('correct')
+                if ((parseInt(selNote.style.top, 10) > 490 && parseInt(selNote.style.top, 10) < 500) || (parseInt(selNote.style.top, 10) > 550 && parseInt(selNote.style.top, 10) < 560)) {
+                    call = 'good'
+                    combo++
+                } else if ((parseInt(selNote.style.top, 10) >= 500 && parseInt(selNote.style.top, 10) < 515) || (parseInt(selNote.style.top, 10) > 535 && parseInt(selNote.style.top, 10) <= 550)) {
+                    call = 'great'
+                    combo++
+                } else {
+                    call = 'perfect'
+                    combo++
+                }
+                document.querySelector('.combo').innerHTML = `${combo} combo`
+            } else {
+                selNote.classList.add('wrong')
+                call = 'fail'
+            }
+            document.querySelector(`.${call}`).innerHTML = Number(document.querySelector(`.${call}`).innerHTML) + 1
+            score = Number(document.querySelector('.perfect').innerHTML) * 100 + Number(document.querySelector('.great').innerHTML) * 70 + Number(document.querySelector('.good').innerHTML) * 10 + Math.ceil(combo / 10) * 10;
+            document.querySelector('.score').innerHTML = score;
+        });
+
+    </script>
+</body>
+
+</html>

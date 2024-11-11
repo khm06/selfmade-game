@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engineering Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        .calculator {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .display {
+            width: 100%;
+            height: 40px;
+            margin-bottom: 10px;
+            text-align: right;
+            padding-right: 10px;
+            font-size: 1.5em;
+            border: 1px solid #ddd;
+        }
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+        .button {
+            padding: 20px;
+            font-size: 1.2em;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            cursor: pointer;
+            text-align: center;
+        }
+        .button.function {
+            background-color: #f0f0f0;
+        }
+        .button.operator {
+            background-color: #ffcc00;
+        }
+        .button.equals {
+            grid-column: span 4;
+            background-color: #ff9900;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <div id="display" class="display">0</div>
+        <div class="buttons">
+            <div class="button function" onclick="clearDisplay()">C</div>
+            <div class="button function" onclick="deleteLast()">DEL</div>
+            <div class="button function" onclick="calculateSquareRoot()">√</div>
+            <div class="button function" onclick="prepareXYRoot()">x√y</div>
+            <div class="button" onclick="appendNumber('7')">7</div>
+            <div class="button" onclick="appendNumber('8')">8</div>
+            <div class="button" onclick="appendNumber('9')">9</div>
+            <div class="button operator" onclick="appendOperator('/')">/</div>
+            <div class="button" onclick="appendNumber('4')">4</div>
+            <div class="button" onclick="appendNumber('5')">5</div>
+            <div class="button" onclick="appendNumber('6')">6</div>
+            <div class="button operator" onclick="appendOperator('*')">*</div>
+            <div class="button" onclick="appendNumber('1')">1</div>
+            <div class="button" onclick="appendNumber('2')">2</div>
+            <div class="button" onclick="appendNumber('3')">3</div>
+            <div class="button" onclick="appendNumber('0')">0</div>
+            <div class="button" onclick="appendNumber('.')">.</div>
+            <div class="button equals" onclick="calculateResult()">=</div>
+        </div>
+    </div>
+
+    <script>
+        const display = document.getElementById('display');
+        let firstOperand = null;
+        let waitingForSecondOperand = false;
+
+        function clearDisplay() {
+            display.textContent = '0';
+            firstOperand = null;
+            waitingForSecondOperand = false;
+        }
+
+        function deleteLast() {
+            if (display.textContent.length > 1) {
+                display.textContent = display.textContent.slice(0, -1);
+            } else {
+                display.textContent = '0';
+            }
+        }
+
+        function appendNumber(number) {
+            if (waitingForSecondOperand) {
+                display.textContent = number;
+                waitingForSecondOperand = false;
+            } else if (display.textContent === '0') {
+                display.textContent = number;
+            } else {
+                display.textContent += number;
+            }
+        }
+
+        function appendOperator(operator) {
+            const lastChar = display.textContent.slice(-1);
+            if ('+-*/'.includes(lastChar)) {
+                display.textContent = display.textContent.slice(0, -1) + operator;
+            } else {
+                display.textContent += operator;
+            }
+        }
+
+        function calculateResult() {
+            try {
+                display.textContent = eval(display.textContent);
+            } catch (e) {
+                display.textContent = 'Error';
+            }
+        }
+
+        function calculateSquareRoot() {
+            try {
+                display.textContent = Math.sqrt(eval(display.textContent));
+            } catch (e) {
+                display.textContent = 'Error';
+            }
+        }
+
+        function prepareXYRoot() {
+            firstOperand = parseFloat(display.textContent);
+            if (!isNaN(firstOperand)) {
+                // Do not clear display here
+                waitingForSecondOperand = true;
+            }
+        }
+
+        function calculateXYRoot() {
+            const secondOperand = parseFloat(display.textContent);
+            if (!isNaN(firstOperand) && !isNaN(secondOperand)) {
+                const result = Math.pow(secondOperand, 1 / firstOperand);
+                display.textContent = result;
+                firstOperand = null;
+                waitingForSecondOperand = false;
+            } else {
+                display.textContent = 'Error';
+            }
+        }
+    </script>
+</body>
+</html>
