@@ -1,33 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>오목 게임</title>
   <style>
+    body {
+      display: flex;
+      justify-content: space-between;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+    }
+
     #board {
       display: grid;
       grid-template-columns: repeat(15, 30px);
       grid-template-rows: repeat(15, 30px);
       gap: 1px;
-      margin: 20px auto;
-      width: 460px;
+      position: relative;
+      transform: translateX(-50%);
+      left: 50%;
     }
+
     .cell {
       width: 30px;
       height: 30px;
       background-color: #f0d9b5;
-      border: 1px solid #999;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
+      border: 1px solid #999;
+      font-size: 16px;
+    }
+
+    #sidebar {
+      width: 200px;
+    }
+
+    #nickname-form {
+      margin-bottom: 20px;
+    }
+
+    #users {
+      border: 1px solid #ccc;
+      padding: 10px;
+      background-color: #f9f9f9;
+      height: 400px;
+      overflow-y: auto;
+    }
+
+    .user {
+      padding: 5px;
+      border-bottom: 1px solid #ddd;
     }
   </style>
 </head>
+
 <body>
   <div id="board"></div>
+  <div id="sidebar">
+    <form id="nickname-form">
+      <input type="text" id="nickname" placeholder="닉네임 입력" required />
+      <button type="submit">입장</button>
+    </form>
+    <div id="users">
+      <h3>접속 중인 유저</h3>
+      <div id="user-list"></div>
+    </div>
+  </div>
   <script src="/socket.io/socket.io.js"></script>
   <script src="app.js"></script>
 </body>
+
 </html>
