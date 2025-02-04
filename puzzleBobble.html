@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Puzzle Bobble</title>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f0f0f0;
+    }
+
+    canvas {
+      background-color: #000;
+      display: block;
+      border: 2px solid #fff;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="gameCanvas"></canvas>
+
+  <script>
+    let canvas = document.getElementById('gameCanvas');
+    let ctx = canvas.getContext('2d');
+
+    canvas.width = 400;
+    canvas.height = 600;
+
+    let bubbles = [];
+    let bubbleRadius = 20;
+    let bubbleColors = ['red', 'green', 'blue', 'yellow', 'purple'];
+
+    let shooterAngle = Math.PI / 2; 
+    let shooter = {
+      x: canvas.width / 2,
+      y: canvas.height - 50,
+    };
+
+    let currentBubble = {
+      x: shooter.x,
+      y: shooter.y,
+      dx: 0,
+      dy: 0,
+      color: bubbleColors[Math.floor(Math.random() * bubbleColors.length)],
+      moving: false,
+    };
+
+    function createBubbleGrid(rows, cols) {
+      let grid = [];
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          let x = c * bubbleRadius * 2 + bubbleRadius;
+          let y = r * bubbleRadius * 2 + bubbleRadius;
+          let color = bubbleColors[Math.floor(Math.random() * bubbleColors.length)];
+          grid.push({ x, y, color });
+        }
+      }
+      return grid;
+    }
+
+    function drawBubble(x, y, color) {
+      ctx.beginPath();
+      ctx.arc(x, y, bubbleRadius, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawShooter() {
+      ctx.beginPath();
+      ctx.moveTo(shooter.x, shooter.y);
+      ctx.lineTo(
+        shooter.x + Math.cos(shooterAngle) * 50,
+        shooter.y - Math.sin(shooterAngle) * 50
+      );
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.closePath();
+    }
+
+    let bubbleGrid = createBubbleGrid(5, 8);
+
+    function isColliding(b1, b2) {
+      let dx = b1.x - b2.x;
+      let dy = b1.y - b2.y;
+      let distance = Math.sqrt(dx * dx + dy * dy);
+      return distance <= bubbleRadius * 2;
+    }
+
+    function findConnectedBubbles(startBubble, visited = new Set()) {
+      let connected = [];
+      let stack = [startBubble];
+
+      while (stack.length > 0) {
+        let bubble = stack.pop();
+        if (visited.has(bubble)) continue;
+
+        visited.add(bubble);
+        connected.push(bubble);
+
+        for (let other of bubbleGrid) {
+          if (!visited.has(other) && other.color === bubble.color && isColliding(bubble, other)) {
+            stack.push(other);
+          }
+        }
+      }
+
+      return connected;
+    }
+
+    function findFloatingBubbles() {
+      let visited = new Set();
+      let connectedToTop = new Set();
+
+      let queue = bubbleGrid.filter(bubble => bubble.y <= bubbleRadius * 2);
+      queue.forEach(bubble => connectedToTop.add(bubble));
+
+      while (queue.length > 0) {
+        let bubble = queue.shift();
+        visited.add(bubble);
+
+        for (let other of bubbleGrid) {
+          if (!visited.has(other) && isColliding(bubble, other)) {
+            queue.push(other);
+            connectedToTop.add(other);
+          }
+        }
+      }
+      return bubbleGrid.filter(bubble => !connectedToTop.has(bubble));
+    }
+    function removeBubbles(bubblesToRemove) {
+      for (let bubble of bubblesToRemove) {
+        let index = bubbleGrid.indexOf(bubble);
+        if (index !== -1) {
+          bubbleGrid.splice(index, 1);
+        }
+      }
+    }
+
+    function moveBubble() {
+      if (currentBubble.moving) {
+        currentBubble.x += currentBubble.dx;
+        currentBubble.y += currentBubble.dy;
+
+        if (
+          currentBubble.x - bubbleRadius <= 0 ||
+          currentBubble.x + bubbleRadius >= canvas.width
+        ) {
+          currentBubble.dx *= -1;
+        }
+
+        if (currentBubble.y - bubbleRadius <= 0) {
+          currentBubble.moving = false;
+          bubbleGrid.push(currentBubble);
+          resetBubble();
+        } else {
+          for (let bubble of bubbleGrid) {
+            if (isColliding(currentBubble, bubble)) {
+              currentBubble.moving = false;
+              bubbleGrid.push(currentBubble);
+
+              let connectedBubbles = findConnectedBubbles(currentBubble);
+              if (connectedBubbles.length >= 4) {
+                removeBubbles(connectedBubbles);
+
+                let floatingBubbles = findFloatingBubbles();
+                removeBubbles(floatingBubbles);
+              }
+
+              resetBubble();
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    function resetBubble() {
+      currentBubble = {
+        x: shooter.x,
+        y: shooter.y,
+        dx: 0,
+        dy: 0,
+        color: bubbleColors[Math.floor(Math.random() * bubbleColors.length)],
+        moving: false,
+      };
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let bubble of bubbleGrid) {
+        drawBubble(bubble.x, bubble.y, bubble.color);
+      }
+
+      drawShooter();
+
+      drawBubble(currentBubble.x, currentBubble.y, currentBubble.color);
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') {
+        shooterAngle += 0.05;
+        if (shooterAngle > 2.8) {
+          shooterAngle = 2.8
+        }
+      } else if (e.key === 'ArrowRight') {
+        shooterAngle -= 0.05;
+        if (shooterAngle < 0.47) {
+          shooterAngle = 0.47
+        }
+      } else if (e.key === ' ') {
+        if (!currentBubble.moving) {
+          currentBubble.dx = Math.cos(shooterAngle) * 5;
+          currentBubble.dy = -Math.sin(shooterAngle) * 5;
+          currentBubble.moving = true;
+        }
+      }
+    });
+
+    function gameLoop() {
+      moveBubble();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+  </script>
+</body>
+
+</html>
