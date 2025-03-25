@@ -16,9 +16,10 @@
     }
 
     canvas {
-      background-color: #000;
+      background-color: #361170;
       display: block;
       border: 2px solid #fff;
+      border-radius: 20px;
     }
   </style>
 </head>
@@ -32,12 +33,30 @@
 
     canvas.width = 400;
     canvas.height = 600;
-
+    // canvas.fill = '#361170'
     let bubbles = [];
     let bubbleRadius = 20;
     let bubbleColors = ['red', 'green', 'blue', 'yellow', 'purple'];
+    let bubbleImages = {
+      red: new Image(),
+      green: new Image(),
+      blue: new Image(),
+      yellow: new Image(),
+      purple: new Image()
+    }
+    let shotsFired = 0;
+    let shotsBeforeAddingRow = 8;
 
-    let shooterAngle = Math.PI / 2; 
+    bubbleImages.red.src = './images/red.svg'
+    bubbleImages.green.src = './images/green.svg'
+    bubbleImages.blue.src = './images/blue.svg'
+    bubbleImages.yellow.src = './images/yellow.svg'
+    bubbleImages.purple.src = './images/purple.svg'
+
+    let gameOver = false;
+
+
+    let shooterAngle = Math.PI / 2;
     let shooter = {
       x: canvas.width / 2,
       y: canvas.height - 50,
@@ -66,13 +85,18 @@
     }
 
     function drawBubble(x, y, color) {
-      ctx.beginPath();
-      ctx.arc(x, y, bubbleRadius, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.fill();
-      ctx.closePath();
-    }
+      const img = bubbleImages[color];
 
+      if (img.complete) {
+        ctx.drawImage(img, x - bubbleRadius, y - bubbleRadius, bubbleRadius * 2, bubbleRadius * 2);
+      } else {
+        ctx.beginPath();
+        ctx.arc(x, y, bubbleRadius, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.closePath();
+      }
+    }
     function drawShooter() {
       ctx.beginPath();
       ctx.moveTo(shooter.x, shooter.y);
@@ -150,38 +174,48 @@
         currentBubble.x += currentBubble.dx;
         currentBubble.y += currentBubble.dy;
 
-        if (
-          currentBubble.x - bubbleRadius <= 0 ||
-          currentBubble.x + bubbleRadius >= canvas.width
-        ) {
+        if (currentBubble.x - bubbleRadius <= 0 || currentBubble.x + bubbleRadius >= canvas.width) {
           currentBubble.dx *= -1;
         }
 
         if (currentBubble.y - bubbleRadius <= 0) {
           currentBubble.moving = false;
           bubbleGrid.push(currentBubble);
+          shotsFired++;
+          checkAndAddRows();
           resetBubble();
-        } else {
-          for (let bubble of bubbleGrid) {
-            if (isColliding(currentBubble, bubble)) {
-              currentBubble.moving = false;
-              bubbleGrid.push(currentBubble);
+          return;
+        }
 
-              let connectedBubbles = findConnectedBubbles(currentBubble);
-              if (connectedBubbles.length >= 4) {
-                removeBubbles(connectedBubbles);
+        for (const bubble of bubbleGrid) {
+          if (isColliding(currentBubble, bubble)) {
+            currentBubble.moving = false;
+            bubbleGrid.push(currentBubble);
+            shotsFired++;
+            checkAndAddRows();
 
-                let floatingBubbles = findFloatingBubbles();
-                removeBubbles(floatingBubbles);
-              }
-
-              resetBubble();
-              break;
+            const connectedBubbles = findConnectedBubbles(currentBubble);
+            if (connectedBubbles.length >= 4) {
+              removeBubbles(connectedBubbles);
+              const floatingBubbles = findFloatingBubbles();
+              removeBubbles(floatingBubbles);
             }
+
+            if (checkGameOver()) return; // 게임 오버 체크
+            resetBubble();
+            break;
           }
         }
       }
     }
+
+    function checkAndAddRows() {
+      if (shotsFired >= shotsBeforeAddingRow) {
+        addNewRows(2);
+        shotsFired = 0;
+      }
+    }
+
 
     function resetBubble() {
       currentBubble = {
@@ -193,6 +227,48 @@
         moving: false,
       };
     }
+
+    function addNewRows(rowCount = 2) {
+      for (let r = 0; r < rowCount; r++) {
+        const newRow = [];
+
+        for (let c = 0; c < 8; c++) {
+          newRow.push({
+            x: c * bubbleRadius * 2 + bubbleRadius,
+            y: bubbleRadius,
+            color: bubbleColors[Math.floor(Math.random() * bubbleColors.length)],
+          });
+        }
+
+        for (let bubble of bubbleGrid) {
+          bubble.y += bubbleRadius * 2;
+        }
+
+        bubbleGrid.unshift(...newRow);
+      }
+    }
+
+    function checkGameOver() {
+      for (const bubble of bubbleGrid) {
+        if (bubble.y + bubbleRadius >= canvas.height) {
+          gameOver = true;
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function drawGameOverScreen() {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "red";
+      ctx.font = "30px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2);
+      ctx.fillText("Press R to Restart", canvas.width / 2, canvas.height / 2 + 40);
+    }
+
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -207,26 +283,55 @@
     }
 
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft') {
-        shooterAngle += 0.05;
-        if (shooterAngle > 2.8) {
-          shooterAngle = 2.8
-        }
-      } else if (e.key === 'ArrowRight') {
-        shooterAngle -= 0.05;
-        if (shooterAngle < 0.47) {
-          shooterAngle = 0.47
-        }
-      } else if (e.key === ' ') {
-        if (!currentBubble.moving) {
-          currentBubble.dx = Math.cos(shooterAngle) * 5;
-          currentBubble.dy = -Math.sin(shooterAngle) * 5;
-          currentBubble.moving = true;
+      if (gameOver && e.key.toLowerCase() === "r") {
+        restartGame();
+      }
+      if (!gameOver) {
+        if (e.key === 'ArrowLeft') {
+          shooterAngle += 0.05;
+          if (shooterAngle > 2.8) {
+            shooterAngle = 2.8
+          }
+        } else if (e.key === 'ArrowRight') {
+          shooterAngle -= 0.05;
+          if (shooterAngle < 0.47) {
+            shooterAngle = 0.47
+          }
+        } else if (e.key === ' ') {
+          if (!currentBubble.moving) {
+            currentBubble.dx = Math.cos(shooterAngle) * 5;
+            currentBubble.dy = -Math.sin(shooterAngle) * 5;
+            currentBubble.moving = true;
+          }
         }
       }
     });
 
+    function restartGame() {
+      bubbleGrid.length = 0; 
+      shotsFired = 0;
+      gameOver = false;
+
+      bubbleGrid.push(...createBubbleGrid(5, 8));
+
+      currentBubble = {
+        x: shooter.x,
+        y: shooter.y,
+        dx: 0,
+        dy: 0,
+        color: bubbleColors[Math.floor(Math.random() * bubbleColors.length)],
+        moving: false,
+      };
+
+      gameLoop();
+    }
+
+
     function gameLoop() {
+      if (gameOver) {
+        drawGameOverScreen();
+        return;
+      }
       moveBubble();
       draw();
       requestAnimationFrame(gameLoop);
